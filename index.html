@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>统计</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+    body{
+      overflow: hidden;
+    }
+
+    #app {
+      float: left;
+      width: 45%;
+      height: auto;
+      border: 1px solid #aaa;
+      padding: 10px;
+      margin: 10px 20px;
+    }
+
+    #tb {
+      width: 100%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      text-align: center;
+    }
+
+    #tb th {
+      background-color: #0094ff;
+      color: white;
+      font-size: 1em;
+      padding: 5px;
+      border: 1px solid black;
+    }
+
+    #tb td {
+      padding: 5px;
+      border: 1px solid black;
+    }
+
+    #cont {
+      float: right;
+      width: 49%;
+      height: 100%;
+
+      margin-right: 20px;
+    }
+
+    .container {
+      margin-top: 10px;
+      width: 100%;
+      height: 50%;
+      border: 1px solid #aaa;
+    }
+  </style>
+  <script src="./js/konva.min.js"></script>
+  <script src="./js/vue.min.js"></script>
+</head>
+
+<body>
+
+  <div id="app">
+    <input type="text" v-model="pname" />
+    <input type="number" v-model="pnum" @keydown.enter="addData">
+    <button @click="addData">添加数据</button>
+    <table id="tb">
+      <tr>
+        <th>类型</th>
+        <th>数据</th>
+        <th>比例</th>
+        <th>操作</th>
+      </tr>
+      <tr v-show="list.length==0">
+        <td colspan="2">请添加数据再生成统计图</td>
+      </tr>
+      <tr v-for="(item,index) in list">
+        <td>{{item.name}}</td>
+        <td>{{item.num}}</td>
+        <td>{{item.value}}</td>
+        <td>
+          <a href="javascript:void(0)" @click="delData(index,item.num)">删除</a>
+        </td>
+      </tr>
+    </table>
+    <button @click="Toboth">生成统计图</button>
+  </div>
+  <div id="cont">
+    <div id="container1" class="container"></div>
+    <div id="container2" class="container"></div>
+  </div>
+  <script>
+
+    Vue.filter("money", function (value) {
+      let transformVal = Number(value).toFixed(4)
+
+      let realVal = transformVal.substring(0, transformVal.length - 1)
+
+      // num.toFixed(3)获取的是字符串
+
+      return Number(realVal)
+    })
+    const colors = ["#33B5E5","#0099CC","#AA66CC","#9933CC","#99CC00","#669900","#FFBB33","#FF8800","#FF4444","#CC0000"]
+    new Vue({
+      el: "#app",
+      data: {
+        list: [
+          { name: 'Java', num: '60', value: '0.3',color:'' },
+          { name: 'PHP', num: '60', value: '0.3' ,color:''},
+          { name: 'C#', num: '40', value: '0.2',color:'' },
+          { name: 'Python', num: '40', value: '0.2',color:'' },
+        ],
+        pname: "",
+        pnum: 0,
+        sum: 200    
+      },
+      created: function () {
+        this.comp();
+        this.Columns();
+        this.Sector();
+      },
+      methods: {
+        Toboth: function () {
+          this.comp();
+          this.Columns();
+          this.Sector();
+        },
+        comp: function () {
+          var summ=this.sum;
+          console.log(this.sum);
+          this.list.forEach(function (item, index) {
+            let va=item.num/summ;
+            
+            let transformVal = Number(va).toFixed(5);
+            let realVal = transformVal.substring(0, transformVal.length - 1);
+            item.value = Number(realVal);
+            item.color=colors[Math.floor( Math.random(Date.now)*colors.length )];
+          })
+        },
+        addData: function () {
+          if (this.pname == "" || this.pnum == "" || this.pnum < 0) {
+            alert("请添加正确数据");
+            return;
+          }
+          this.sum = this.sum * 1 + this.pnum * 1;
+          var valu = this.pnum / this.sum;
+          var p = { name: this.pname, num: this.pnum, value: valu };
+          this.list.push(p);
+          this.comp();
+          this.pnum = 0;
+          this.pname = "";
+        },
+        delData: function (index,num) {
+          if (!confirm('是否要删除数据？')) {
+            return;
+          }
+          this.list.splice(index, 1);
+          this.sum = this.sum - num;
+          this.comp();
+        },
+        Sector: function () {
+          /***************扇形图****************/
+          var stage = new Konva.Stage({
+            container: 'container2',
+            width: window.innerWidth / 2-15,
+            height: window.innerHeight / 2 - 20
+          })
+
+          var layer = new Konva.Layer();
+          stage.add(layer);
+
+          var cenX = stage.width() / 2;  //无参数  :get
+          var cenY = stage.height() / 2;
+
+          var data = this.list;
+
+          var x0 = cenX,          //var x0=y0=z   y0会是全局变量，不建议 这么写
+            y0 = cenY;
+
+          var tempAngel = -90;
+          data.forEach(function (item, index) {
+            //扇形
+            var angle = 360 * item.value;
+            var wedge = new Konva.Wedge({
+              x: x0,
+              y: y0,
+              angle: angle,
+              radius: 100,    //半径
+              fill: item.color,
+              rotation: tempAngel
+
+            })
+
+            layer.add(wedge);
+            console.log( item.value);           
+            //百分数  
+            var textAngle = tempAngel + 1 / 2 * angle;
+            var text = new Konva.Text({
+              x: x0 + (100 + 20) * Math.cos(Math.PI / 180 * textAngle),
+              y: y0 + (100 + 25) * Math.sin(Math.PI / 180 * textAngle),
+              text: (item.value*100).toFixed(2) + '%',
+              fill: item.color
+            })
+            if (textAngle > 90 && textAngle < 270) {
+              text.x(text.x() - text.getWidth());
+            }
+            layer.add(text);
+
+            tempAngel += 360 * item.value;
+          })
+
+          var cir = new Konva.Circle({
+            x: x0,
+            y: y0,
+            radius: 110,
+            stroke: '#ccc',
+            strokeWidth: 2
+          })
+          layer.add(cir);
+
+          layer.draw();
+
+          var index = 0;
+          var wedges = layer.find('Wedge');
+          wedges.each(function (item, index) {
+            item.angle(0);
+          })
+          //动画
+          function animatePie() {
+            if (index >= data.length)
+              return;
+            var item = wedges[index];
+            item.angle(0);
+            item.to({
+              angle: data[index].value * 360,
+              duration: data[index].value * 2,
+              onFinish: function () {
+                index++;
+                animatePie();
+              }
+            })
+          }
+          animatePie();
+          stage.on('contentClick', function () {
+            index = 0;
+            wedges.each(function (item, index) {
+              item.angle(0);
+            })
+
+            animatePie();
+          })
+        },
+        Columns: function () {
+          /****************柱状图************************/
+          /*        var c1=document.getElementById(""); */
+          var width = window.innerWidth / 2-15;
+          var height = window.innerHeight / 2 - 20;
+          //创建舞台
+          var stage = new Konva.Stage({
+            container: 'container1',
+            width: width,  //全屏
+            height: height
+          });
+
+          //创建层
+          var layer = new Konva.Layer();
+          stage.add(layer);
+
+          //中心坐标
+          var cenX = stage.width() / 2;
+          var cenY = stage.height() / 2;
+
+          //数据
+          var data = this.list;
+
+          var x0 = 1 / 8 * stage.width();       //柱状图原点图标
+          var y0 = 5 / 6 * stage.height();
+
+          var width = 3 / 4 * stage.width();  //柱状图最大宽度
+          var height = 3 / 4 * stage.height();   //柱状图高度
+          //绘制底线
+          var bsLine = new Konva.Line({
+            points: [x0, y0, x0 + width, y0],
+            strokeWidth: 1,
+            stroke: 'lightgreen',
+          });
+
+          layer.add(bsLine);
+
+          //柱状图单位宽度
+          var ractWidth = width / data.length;
+          //绘制柱状图矩形 遍历数据
+          data.forEach(function (item, index) {
+            var rect = new Konva.Rect({
+              x: x0 + (1 / 4 + index) * ractWidth,
+              y: y0 - item.value * height,
+              width: 1 / 2 * ractWidth,
+              height: item.value * height,
+              fill: item.color,
+              opacity: .8,
+              cornerRadius: 10
+            });
+            layer.add(rect);
+
+            //百分数文字
+            var text = new Konva.Text({
+              x: x0 + index * ractWidth,
+              y: y0 - item.value * height - 15,
+              fontSize: 14,
+              text: (item.value*100).toFixed(2) + "%",
+              fill: item.color,
+              width: ractWidth,
+              align: 'center',
+              name: 'textPercent'
+            })
+            layer.add(text);
+
+            var group = new Konva.Group({   //分组时
+              x: x0 + (1 / 3 + index) * ractWidth,
+              y: y0 + 2
+            });
+            //类型文字
+            var textBottm = new Konva.Text({
+              //  x:x0+(index)*ractWidth+1/3*ractWidth,  //不分组group时
+              x: 0,
+              y: 0,
+              fontSize: 14,
+              text: item.name,
+              fill: item.color,
+              align: 'center',
+              rotation: 30
+            })
+            group.add(textBottm);   //
+            layer.add(group);
+          })
+
+          layer.draw();
+          function Tocol() {
+            //找到所有矩形
+            layer.find('Rect').each(function (item, index) {
+              item.y(y0);    //在konva中，有参数：设置值set；  无参数：取值get
+              item.height(0);
+
+              item.to({
+                duration: 2 * data[index].value,
+                y: y0 - data[index].value * height,
+                height: data[index].value * height,
+              })
+            })
+
+            //找到所有百分数
+            layer.find('.textPercent').each(function (item, index) {
+              item.y(y0 - 15);    //在konva中，有参数：设置值set；  无参数：取值get
+
+              item.to({
+                duration: 2 * data[index].value,
+                y: y0 - data[index].value * height - 15,
+              })
+            })
+          }
+          //动画
+          Tocol();
+          //舞台事件绑定
+          stage.on('contentClick', function () {
+            Tocol();
+          })
+        }
+
+      }
+    })
+  </script>
+</body>
+
+</html>

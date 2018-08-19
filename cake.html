@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>饼状图</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            background-color: #f0f0f0;
+
+        }
+    </style>
+    <script src="./js/konva.min.js"></script>
+</head>
+
+<body>
+    <div id="container"></div>
+
+    <script>
+        var stage = new Konva.Stage({
+            container: 'container',
+            width: window.innerWidth,
+            height: window.innerHeight
+        })
+
+        var layer = new Konva.Layer();
+        stage.add(layer);
+
+        var cenX = stage.width() / 2;  //无参数  :get
+        var cenY = stage.height() / 2;
+
+        var data = [
+            { name: '前端', value: .25, color: '#e0e' },
+            { name: 'PHP', value: .2, color: 'orange' },
+            { name: 'UI', value: .3, color: 'blue' },
+            { name: 'C++', value: .05, color: 'green' },
+            { name: '游戏', value: .1, color: 'purple' },
+            { name: 'JAVA', value: .1, color: 'red' },
+        ];
+
+        var x0 = cenX,          //var x0=y0=z   y0会是全局变量，不建议 这么写
+            y0 = cenY;
+
+        var tempAngel = -90;
+        data.forEach(function (item, index) {
+            //扇形
+            var angle = 360 * item.value;
+            var wedge = new Konva.Wedge({
+                x: x0,
+                y: y0,
+                angle: angle,
+                radius: 100,    //半径
+                fill: item.color,
+                rotation: tempAngel
+
+            })
+
+            layer.add(wedge);
+
+            //百分数  
+            var textAngle = tempAngel + 1 / 2 * angle;
+            var text = new Konva.Text({
+                x: x0 + (100 + 20) * Math.cos(Math.PI / 180 * textAngle),
+                y: y0 + (100 + 25) * Math.sin(Math.PI / 180 * textAngle),
+                text: item.value * 100 + '%',
+                fill: item.color
+            })
+            if (textAngle > 90 && textAngle < 270) {
+                text.x(text.x() - text.getWidth());
+            }
+            layer.add(text);
+
+            tempAngel += 360 * item.value;
+        })
+
+        var cir = new Konva.Circle({
+            x: x0,
+            y: y0,
+            radius: 110,
+            stroke: '#ccc',
+            strokeWidth: 2
+        })
+        layer.add(cir);
+
+        layer.draw();
+
+        var index = 0;
+        var wedges = layer.find('Wedge');
+        wedges.each(function (item, index) {
+            item.angle(0);
+        })
+        //动画
+        function animatePie() {
+            if (index >= data.length)
+                return;
+            var item = wedges[index];
+            item.angle(0);
+            item.to({
+                angle: data[index].value * 360,
+                duration: data[index].value * 2,
+                onFinish: function () {
+                    index++;
+                    animatePie();
+                }
+            })
+        }
+        animatePie();
+        stage.on('contentClick', function () {
+            index = 0;
+            wedges.each(function (item, index) {
+                item.angle(0);
+            })
+
+            animatePie();
+        })
+    </script>
+</body>
+
+</html>
